@@ -816,6 +816,21 @@ ggsave(here("figs", "study4_choice.png"), p.study4_choice,
 ```
 
 ```{r}
+#posterior predicted curves from the bayesian age model 
+study4_age_curves <- expand_grid(condition = levels(df.study4$condition),
+                                 age_c = seq(min(df.study4$age_c),
+                                             max(df.study4$age_c),
+                                             length.out = 50))
+
+study4_age_draws <- posterior_epred(study4_age_model,
+                                    newdata = study4_age_curves)
+
+study4_age_curves <- study4_age_curves |>
+  mutate(prob = apply(study4_age_draws, 2, median),
+         lower = apply(study4_age_draws, 2, quantile, 0.025),
+         upper = apply(study4_age_draws, 2, quantile, 0.975),
+         age = age_c + mean(df.study4$age))
+
 #age effects figure
 p.study4_age <- ggplot(data = df.study4,
                        mapping = aes(x = age,
@@ -824,10 +839,14 @@ p.study4_age <- ggplot(data = df.study4,
                                      fill = condition)) +
   geom_point(size = 12,
              alpha = .3) +
-  geom_smooth(method = "glm",
-              method.args = list(family = binomial(link = "logit")),
-              linewidth = 3,
+  geom_ribbon(data = study4_age_curves,
+              mapping = aes(x = age, ymin = lower, ymax = upper,
+                            fill = condition),
+              inherit.aes = FALSE,
               alpha = .2) +
+  geom_line(data = study4_age_curves,
+            mapping = aes(y = prob),
+            linewidth = 3) +
   scale_color_manual(values = c("High Uncertainty" = "#4C6EBC",
                                 "Low Uncertainty" = "#C1553A")) +
   scale_fill_manual(values = c("High Uncertainty" = "#4C6EBC",
