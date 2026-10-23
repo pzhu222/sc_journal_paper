@@ -1,0 +1,89 @@
+id,age,gender,condition,color,exclude,exclude_reason,choice,check_question
+SC_Study4_01,4.64,F,1,Yellow,0,,0,1
+SC_Study4_02,4.89,F,1,Yellow,0,,1,1
+SC_Study4_03,5.02,F,0,Yellow,0,,1,1
+SC_Study4_04,4.23,M,1,Green,1,did not pass comprehension checks; did not make a choice,NA,0
+SC_Study4_05,4.62,M,1,Yellow,0,,1,1
+SC_Study4_06,5.35,F,1,Yellow,0,,1,1
+SC_Study4_07,5.31,M,1,Green,0,,1,1
+SC_Study4_08,5.28,M,1,Green,0,,1,1
+SC_Study4_09,4.08,M,0,Green,0,,0,1
+SC_Study4_10,4.1,F,1,Green,1,did not complete,NA,NA
+SC_Study4_11,5.83,M,1,Green,0,,0,1
+SC_Study4_12,4.5,F,0,Green,0,,0,1
+SC_Study4_13,5.09,NA,0,Green,0,,0,1
+SC_Study4_14,5.39,M,1,Green,0,,0,1
+SC_Study4_15,4.03,NA,1,Yellow,1,did not pass comprehension checks,0,0
+SC_Study4_16,4.64,M,1,Yellow,0,,0,1
+SC_Study4_17,4.32,F,0,Yellow,0,,0,1
+SC_Study4_18,5.48,NA,0,Yellow,1,did not complete,NA,NA
+SC_Study4_19,4.42,M,0,Green,0,,0,1
+SC_Study4_20,4.21,F,1,Yellow,0,,1,1
+SC_Study4_21,4.73,F,0,Yellow,0,,1,1
+SC_Study4_22,5.77,F,0,Green,0,,1,1
+SC_Study4_23,5.22,M,0,Yellow,0,,0,1
+SC_Study4_24,5.56,F,0,Green,0,,0,1
+SC_Study4_25,5.61,F,0,Green,0,,0,1
+SC_Study4_26,4.63,M,1,Green,0,,0,1
+SC_Study4_27,5.74,M,1,Green,1,did not pass comprehension checks,1,0
+SC_Study4_28,4.58,NA,1,Yellow,1,did not pass comprehension checks,0,0
+SC_Study4_29,4.23,F,0,Yellow,0,,0,1
+SC_Study4_30,4.36,F,1,Green,0,,0,1
+SC_Study4_31,4.77,F,0,Green,0,,0,1
+SC_Study4_32,4.71,M,1,Green,0,,0,1
+SC_Study4_33,5.7,M,1,Yellow,0,,1,1
+SC_Study4_34,5.37,F,0,Green,1,tech error,0,1
+SC_Study4_35,4.06,M,1,Yellow,0,,0,1
+SC_Study4_36,5.71,M,0,Yellow,0,,0,1
+SC_Study4_37,4.8,F,0,Yellow,0,,1,1
+SC_Study4_38,4.04,M,0,Yellow,0,,0,1
+SC_Study4_39,5.02,F,0,Green,1,did not complete,NA,NA
+SC_Study4_40,4.4,M,0,Yellow,0,,0,1
+SC_Study4_41,5.58,F,1,Green,0,,1,1
+SC_Study4_42,4.27,M,1,Green,0,,0,1
+SC_Study4_43,5.04,M,1,Yellow,0,,1,1
+SC_Study4_44,4.19,M,0,Yellow,0,,0,1
+SC_Study4_45,5.08,M,1,Green,0,,1,1
+SC_Study4_46,4.28,F,1,Yellow,0,,0,1
+SC_Study4_47,4.17,M,0,Green,0,,0,1
+SC_Study4_48,4.18,F,1,Yellow,1,did not pass comprehension checks,0,0
+SC_Study4_49,4.23,M,0,Green,1,tech error,NA,NA
+SC_Study4_50,4.24,F,1,Green,0,,0,1
+SC_Study4_51,4.7,F,0,Yellow,0,,0,1
+SC_Study4_52,4.19,F,1,Yellow,0,,1,1
+SC_Study4_53,5.83,F,0,Green,0,,0,1
+SC_Study4_54,5.35,M,0,Yellow,0,,1,1
+SC_Study4_55,5.3,M,1,Green,1,did not complete,NA,NA
+SC_Study4_56,4.6,F,0,Green,0,,0,1
+SC_Study4_57,5.59,F,1,Yellow,0,,1,1
+SC_Study4_58,5.43,F,1,Green,0,,1,1
+SC_Study4_59,4.24,M,0,Green,0,,0,1
+SC_Study4_60,5.11,M,1,Yellow,0,,1,1
+SC_Study4_61,4.42,M,0,Yellow,0,,1,1
+SC_Study4_62,4.78,F,1,Green,0,,1,1
+SC_Study4_63,4.03,M,0,Yellow,1,did not complete,NA,NA
+SC_Study4_64,4.94,F,0,Green,0,,1,1
+SC_Study4_65,4.9,F,1,Green,0,,0,1
+SC_Study4_66,4.54,F,1,Yellow,0,,0,1
+SC_Study4_67,5.69,M,0,Yellow,0,,0,1
+SC_Study4_68,5.78,F,1,Yellow,0,,1,1
+SC_Study4_69,4.71,M,1,Green,0,,0,1
+SC_Study4_70,4.37,F,0,Yellow,0,,0,1
+SC_Study4_71,5.04,F,0,Green,0,,1,1
+SC_Study4_72,5.59,M,1,Green,0,,1,1
+SC_Study4_73,5.01,M,1,Green,1,did not pass comprehension checks,1,0
+SC_Study4_74,5.17,F,1,Yellow,0,,1,1
+SC_Study4_75,5.22,F,0,Green,0,,0,1
+SC_Study4_76,5.1,M,0,Yellow,0,,0,1
+SC_Study4_77,5.64,M,1,Yellow,1,did not pass comprehension checks,0,0
+SC_Study4_78,5.95,NA,0,Yellow,0,,0,1
+SC_Study4_79,5.04,F,1,Green,0,,1,1
+SC_Study4_80,5.52,M,0,Green,0,,1,1
+SC_Study4_81,5,M,1,Yellow,1,did not complete,NA,NA
+SC_Study4_82,5.33,M,1,Yellow,0,,1,1
+SC_Study4_83,5.12,F,0,Green,1,did not complete,NA,NA
+SC_Study4_84,5.07,M,1,Yellow,0,,0,1
+SC_Study4_85,5.56,M,0,Yellow,0,,0,1
+SC_Study4_86,5.05,M,1,Green,0,,1,1
+SC_Study4_87,5.71,M,0,Green,0,,1,1
+SC_Study4_88,4.44,M,0,Green,0,,1,1

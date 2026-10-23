@@ -1,0 +1,48 @@
+id,age,gender,condition,exclude,exclude_reason,peeked,time,protocol
+SC_Study1_01,4.55,M,0,0,,0,NA,Version_1
+SC_Study1_02,4.91,F,0,0,,1,134,Version_1
+SC_Study1_03,4.58,F,0,0,,0,NA,Version_1
+SC_Study1_04,4.8,F,1,0,,0,NA,Version_1
+SC_Study1_05,4.91,M,1,0,,0,NA,Version_1
+SC_Study1_06,4.75,F,1,1,experimenter error,NA,NA,Version_1
+SC_Study1_07,4.57,M,1,0,,1,0,Version_1
+SC_Study1_08,4.96,F,0,0,,0,NA,Version_1
+SC_Study1_09,4.74,M,1,0,,1,0,Version_1
+SC_Study1_10,5.13,F,1,1,experimenter error,NA,NA,Version_1
+SC_Study1_11,4.47,M,1,1,experimenter error,NA,NA,Version_1
+SC_Study1_12,3.85,F,0,0,,0,NA,Version_1
+SC_Study1_13,4.43,M,1,1,experimenter error,NA,NA,Version_1
+SC_Study1_14,4.1,M,0,0,,0,NA,Version_1
+SC_Study1_15,5.11,M,1,0,,0,NA,Version_1
+SC_Study1_16,4.33,M,1,0,,1,119,Version_1
+SC_Study1_17,5.25,F,1,0,,1,8,Version_1
+SC_Study1_18,4.71,M,1,0,,1,1,Version_1
+SC_Study1_19,4.26,M,0,0,,1,8,Version_1
+SC_Study1_20,4.7,F,0,0,,0,NA,Version_1
+SC_Study1_21,4.56,M,0,0,,1,8,Version_2
+SC_Study1_22,3.52,M,1,0,,0,NA,Version_2
+SC_Study1_23,5.3,M,0,1,experimenter error,NA,NA,Version_2
+SC_Study1_24,3.53,M,1,0,,1,12,Version_2
+SC_Study1_25,4.05,M,1,0,,0,NA,Version_2
+SC_Study1_26,4.99,F,0,0,,0,NA,Version_2
+SC_Study1_27,5.28,F,0,0,,0,NA,Version_2
+SC_Study1_28,4.45,F,0,0,,0,NA,Version_2
+SC_Study1_29,4.93,M,1,0,,1,34,Version_2
+SC_Study1_30,4.92,F,1,0,,1,42,Version_2
+SC_Study1_31,4.58,M,0,0,,0,NA,Version_2
+SC_Study1_32,5.25,F,0,0,,0,NA,Version_2
+SC_Study1_33,5.42,M,0,0,,1,1,Version_2
+SC_Study1_34,5.09,F,0,0,,0,NA,Version_2
+SC_Study1_35,5.47,F,1,0,,0,NA,Version_2
+SC_Study1_36,4.95,M,1,0,,1,39,Version_2
+SC_Study1_37,5.43,F,1,0,,1,18,Version_2
+SC_Study1_38,4.31,F,1,0,,1,0,Version_2
+SC_Study1_39,5.63,F,0,0,,0,NA,Version_2
+SC_Study1_40,4.56,F,0,0,,0,NA,Version_2
+SC_Study1_41,4.54,M,NA,1,did not complete,NA,NA,Version_2
+SC_Study1_42,4.41,M,1,0,,1,135,Version_2
+SC_Study1_43,5.12,F,0,1,did not complete,NA,NA,Version_2
+SC_Study1_44,5.89,M,1,0,,1,54,Version_2
+SC_Study1_45,4.03,M,1,0,,0,NA,Version_2
+SC_Study1_46,4.44,F,0,0,,0,NA,Version_2
+SC_Study1_47,5.97,F,0,0,,1,5,Version_2

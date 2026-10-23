@@ -1,0 +1,913 @@
+---
+title: "sc_paper_analyses"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+date: "`r Sys.Date()`"
+---
+
+# Overview
+
+```{r setup, include=FALSE}
+# Keep outputs readable and figures consistent across studies.
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+
+#set seed
+set.seed(123)
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(here)
+  library(BayesFactor)
+  library(emmeans)
+  library(survival)
+  library(survminer)
+  library(rstanarm)
+  library(bridgesampling)
+  library(showtext)
+})
+
+base_font <- tryCatch({
+  font_add(
+    "Inter 24pt",
+    regular = "Inter_24pt-Regular.ttf",
+    bold = "Inter_24pt-Bold.ttf",
+    italic = "Inter_24pt-Italic.ttf",
+    bolditalic = "Inter_24pt-BoldItalic.ttf"
+  )
+  "Inter 24pt"
+}, error = function(e) "sans")
+showtext_auto()
+showtext_opts(dpi = 300)
+
+#set common theme
+theme_set(
+  theme_classic(base_family = base_font, base_size = 48) +
+    theme(
+      legend.position = "none",
+      axis.title.y = element_text(margin = margin(r = 20)),
+      axis.title.x = element_text(margin = margin(t = 20)),
+      plot.background = element_rect(fill = "white", color = NA),
+      panel.background = element_rect(fill = "white", color = NA),
+      plot.clip = "off",
+      plot.margin = margin(5.5, 5.5, 5.5, 80)
+    )
+)
+```
+
+# Study 1
+
+## Data
+
+```{r}
+#read in data
+df.study1_raw <- read.csv(here("data", "sc_study1_final.csv"))
+
+#clean data and recode values
+df.study1 <- df.study1_raw |>
+  select(id,
+         age,
+         gender,
+         condition,
+         exclude,
+         peek = peeked,
+         time,
+         protocol) |>
+  filter(exclude == 0) |>
+  mutate(condition = ifelse(condition == 0, "Other", "Self")) |>
+  mutate(time = as.numeric(ifelse(is.na(time), 180, time)),
+         age_c = age - mean(age))
+```
+
+## Demographics
+
+```{r}
+#age
+df.study1 |>
+  summarise(n = n(),
+            age_mean = mean(age),
+            age_sd = sd(age),
+            age_min = min(age),
+            age_max = max(age))
+
+#gender
+df.study1 |>
+  count(gender)
+
+#number of participants peeking by condition
+df.study1 |>
+  count(condition, peek)
+
+#excluded participants
+df.study1_raw |>
+  filter(exclude == 1) |>
+  count(exclude_reason)
+```
+
+## Analyses
+
+```{r}
+#fisher test
+fisher.test(table(df.study1$condition, df.study1$peek))
+```
+
+```{r}
+#survival results
+study1.model <- survfit(Surv(time, peek) ~ condition, data = df.study1)
+
+study1.model |>
+  summary()
+
+survdiff(Surv(time, peek) ~ condition, data = df.study1) |>
+  print(digits = 10)
+
+```
+
+```{r}
+#age effects
+study1_age_model <- glm(peek ~ condition * age_c, data = df.study1,
+                        family = binomial)
+
+#condition effect at the mean age
+emmeans(study1_age_model, ~ condition) |>
+  contrast("revpairwise") |>
+  summary(infer = TRUE)
+
+#age slope averaged across conditions
+emtrends(study1_age_model, ~ 1, var = "age_c") |>
+  summary(infer = TRUE)
+
+#age by condition interaction 
+emtrends(study1_age_model, ~ condition, var = "age_c") |>
+  contrast("revpairwise") |>
+  summary(infer = TRUE)
+
+#age effects on peek latency
+study1_latency_model <- coxph(Surv(time, peek) ~ condition * age_c,
+                              data = df.study1)
+
+#age slope averaged across conditions (as a hazard ratio)
+emtrends(study1_latency_model, ~ 1, var = "age_c") |>
+  summary(infer = TRUE) |>
+  mutate(across(c(age_c.trend, asymp.LCL, asymp.UCL), exp))
+
+#age by condition interaction (as a hazard ratio)
+emtrends(study1_latency_model, ~ condition, var = "age_c") |>
+  contrast("revpairwise") |>
+  summary(infer = TRUE) |>
+  mutate(across(c(estimate, asymp.LCL, asymp.UCL), exp))
+
+#age bins
+df.study1 |>
+  group_by(age_bin = floor(age), condition) |>
+  summarise(peeked = sum(peek), n = n(), .groups = "drop")
+```
+
+```{r}
+#slightly different study protocol results
+df.study1 |>
+  count(protocol, condition, peek)
+```
+
+## Figures
+
+```{r}
+#peeking by condition figure
+p.study1_peek <- ggplot(data = df.study1,
+                        mapping = aes(x = condition,
+                                      y = peek,
+                                      color = condition)) +
+  geom_jitter(height = 0,
+              width = 0.4,
+              alpha = 0.3,
+              size = 4.5) +
+  stat_summary(fun.data = "mean_cl_boot",
+               geom = "pointrange",
+               size = 4,
+               linewidth = 4) +
+  scale_color_manual(values = c(Self = "#BA8E23", Other = "#00b159")) +
+  scale_x_discrete(limits = c("Self", "Other")) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  labs(y = "Prop. Peeking",
+       x = "Condition")
+
+ggsave(here("figs", "study1_peek_binary.png"), p.study1_peek,
+       width = 14, height = 9, dpi = 300, bg = "white")
+```
+
+```{r}
+#survival figure
+p.study1_surv <- ggsurvplot(
+  study1.model,
+  conf.int = TRUE,
+  pval = FALSE,
+  palette = c("#00b159", "#BA8E23"),
+  break.x.by = 60,
+  legend = "none",
+  ggtheme = theme_get()
+)
+
+p.study1_surv <- p.study1_surv$plot +
+  theme_get() +
+  labs(y = "Survival Probability", x = "Time (seconds)")
+
+ggsave(here("figs", "study1_surv.png"), p.study1_surv,
+       width = 14, height = 9, dpi = 300, bg = "white")
+```
+
+# Study 2
+
+## Data
+
+```{r}
+#read in data
+df.study2_raw <- read.csv(here("data", "sc_study2_final.csv"))
+
+#clean data and recode values
+df.study2 <- df.study2_raw |>
+  select(id,
+         age,
+         gender,
+         condition,
+         exclude,
+         peek,
+         time) |>
+  filter(exclude == 0) |>
+  mutate(peek = as.numeric(peek),
+         condition = ifelse(condition == 0, "Other", "Self")) |>
+  mutate(time = as.numeric(ifelse(is.na(time), 180, time)),
+         age_c = age - mean(age))
+```
+
+## Demographics
+
+```{r}
+#age
+df.study2 |>
+  summarise(n = n(),
+            age_mean = mean(age),
+            age_sd = sd(age),
+            age_min = min(age),
+            age_max = max(age))
+
+#gender
+df.study2 |>
+  count(gender)
+
+#number of participants peeking by condition
+df.study2 |>
+  count(condition, peek)
+
+#excluded participants
+df.study2_raw |>
+  filter(exclude == 1) |>
+  count(exclude_reason)
+```
+
+## Analyses
+
+```{r}
+
+#fisher test
+fisher.test(table(df.study2$condition, df.study2$peek))
+
+#survival results
+study2.model <- survfit(Surv(time, peek) ~ condition, data = df.study2)
+
+study2.model |>
+  summary()
+
+survdiff(Surv(time, peek) ~ condition, data = df.study2) |>
+  print(digits = 10)
+
+```
+
+```{r}
+#age effects
+
+study2_age_model <- glm(peek ~ condition * age_c, data = df.study2,
+                        family = binomial)
+
+#condition effect at the mean age (Self - Other, log-odds)
+emmeans(study2_age_model, ~ condition) |>
+  contrast("revpairwise") |>
+  summary(infer = TRUE)
+
+#age slope averaged across conditions
+emtrends(study2_age_model, ~ 1, var = "age_c") |>
+  summary(infer = TRUE)
+
+#age by condition interaction (difference in age slopes, Self - Other)
+emtrends(study2_age_model, ~ condition, var = "age_c") |>
+  contrast("revpairwise") |>
+  summary(infer = TRUE)
+
+#age bins
+df.study2 |>
+  group_by(age_bin = floor(age), condition) |>
+  summarise(peeked = sum(peek), n = n(), .groups = "drop")
+
+
+#age effects on peek latency
+study2_latency_model <- coxph(Surv(time, peek) ~ condition * age_c,
+                              data = df.study2)
+
+#age slope averaged across conditions (as a hazard ratio)
+emtrends(study2_latency_model, ~ 1, var = "age_c") |>
+  summary(infer = TRUE) |>
+  mutate(across(c(age_c.trend, asymp.LCL, asymp.UCL), exp))
+
+#age by condition interaction (as a hazard ratio)
+emtrends(study2_latency_model, ~ condition, var = "age_c") |>
+  contrast("revpairwise") |>
+  summary(infer = TRUE) |>
+  mutate(across(c(estimate, asymp.LCL, asymp.UCL), exp))
+
+```
+
+
+```{r}
+#analysis without the erroneously excluded participant
+df.study2_dropped <- df.study2 |>
+  filter(id != "SC_Study2_13")
+
+#fisher test
+fisher.test(table(df.study2_dropped$condition, df.study2_dropped$peek))
+
+#survival results
+study2.model_dropped <- survfit(Surv(time, peek) ~ condition,
+                                data = df.study2_dropped)
+
+study2.model_dropped |>
+  summary()
+
+survdiff(Surv(time, peek) ~ condition, data = df.study2_dropped) |>
+  print(digits = 10)
+
+```
+
+## Figures
+
+```{r}
+#peeking by condition figure
+p.study2_peek <- ggplot(data = df.study2,
+                        mapping = aes(x = condition,
+                                      y = peek,
+                                      color = condition)) +
+  geom_jitter(height = 0,
+              width = 0.4,
+              alpha = 0.3,
+              size = 4.5) +
+  stat_summary(fun.data = "mean_cl_boot",
+               geom = "pointrange",
+               size = 4,
+               linewidth = 4) +
+  scale_color_manual(values = c(Self = "#BA8E23", Other = "#00b159")) +
+  # Make "Self" appear first for consistent interpretability across studies.
+  scale_x_discrete(limits = c("Self", "Other")) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  labs(y = "Prop. Peeking",
+       x = "Condition")
+
+ggsave(here("figs", "study2_peek_binary.png"), p.study2_peek,
+       width = 14, height = 9, dpi = 300, bg = "white")
+```
+
+```{r}
+#survival figure
+p.study2_surv <- ggsurvplot(
+  study2.model,
+  conf.int = TRUE,
+  pval = FALSE,
+  palette = c("#00b159", "#BA8E23"),
+  break.x.by = 60,
+  legend = "none",
+  ggtheme = theme_get()
+)
+
+p.study2_surv <- p.study2_surv$plot +
+  theme_get() +
+  labs(y = "Survival Probability", x = "Time (seconds)")
+
+ggsave(here("figs", "study2_surv.png"), p.study2_surv,
+       width = 14, height = 9, dpi = 300, bg = "white")
+```
+
+# Studies 1 and 2 combined
+
+## Data
+
+```{r}
+#combine study 1 and 2 data
+df.studies12 <- bind_rows(
+  df.study1 |>
+    mutate(study = "Study1") |>
+    select(condition, age, peek, time, study),
+  df.study2 |>
+    mutate(study = "Study2") |>
+    select(condition, age, peek, time, study)
+) |>
+  #age_c: mean-centered on the pooled sample
+  mutate(condition = factor(condition),
+         study = factor(study),
+         age_c = age - mean(age))
+```
+
+## Analyses
+
+```{r}
+#condition by study interaction
+study12_model <- glm(peek ~ condition * study + age_c, data = df.studies12,
+                     family = binomial)
+
+#condition effect averaged across studies (Self - Other, log-odds)
+emmeans(study12_model, ~ condition) |>
+  contrast("revpairwise") |>
+  summary(infer = TRUE)
+
+#study effect averaged across conditions (Study 2 - Study 1, log-odds)
+emmeans(study12_model, ~ study) |>
+  contrast("revpairwise") |>
+  summary(infer = TRUE)
+
+#age slope
+emtrends(study12_model, ~ 1, var = "age_c") |>
+  summary(infer = TRUE)
+
+#condition by study interaction
+emmeans(study12_model, ~ condition * study) |>
+  contrast(interaction = "revpairwise") |>
+  summary(infer = TRUE)
+
+#peek latency: condition by study interaction
+study12_latency_model <- coxph(Surv(time, peek) ~ condition * study + age_c,
+                               data = df.studies12)
+
+#condition effect averaged across studies (as a hazard ratio)
+emmeans(study12_latency_model, ~ condition) |>
+  contrast("revpairwise") |>
+  summary(infer = TRUE) |>
+  mutate(across(c(estimate, asymp.LCL, asymp.UCL), exp))
+
+#age slope (as a hazard ratio)
+emtrends(study12_latency_model, ~ 1, var = "age_c") |>
+  summary(infer = TRUE) |>
+  mutate(across(c(age_c.trend, asymp.LCL, asymp.UCL), exp))
+
+#condition by study interaction (as a hazard ratio)
+emmeans(study12_latency_model, ~ condition * study) |>
+  contrast(interaction = "revpairwise") |>
+  summary(infer = TRUE) |>
+  mutate(across(c(estimate, asymp.LCL, asymp.UCL), exp))
+
+#age bins
+df.studies12 |>
+  group_by(age_bin = floor(age), condition) |>
+  summarise(peeked = sum(peek), n = n(), .groups = "drop")
+```
+
+# Study 3
+
+## Data
+
+```{r}
+#read in data
+df.study3_raw <- read.csv(here("data", "sc_study3_final.csv"))
+
+df.study3 <- df.study3_raw |>
+  filter(exclude == 0) |>
+  mutate(age_c = age - mean(age))
+```
+
+## Demographics
+
+```{r}
+#age
+df.study3 |>
+  summarise(n = n(),
+            age_mean = mean(age),
+            age_sd = sd(age),
+            age_min = min(age),
+            age_max = max(age))
+
+#gender
+df.study3 |>
+  count(gender)
+
+#number of participants choosing self
+df.study3 |>
+  count(choice)
+
+#choice by gender
+df.study3 |>
+  count(gender, choice)
+
+#excluded participants
+df.study3_raw |>
+  filter(exclude == 1) |>
+  count(exclude_reason)
+```
+
+## Analyses
+
+```{r}
+#number choosing self
+study3_choseself <- df.study3 |>
+  pull(choice) |>
+  sum(na.rm = TRUE)
+
+study3_totaln <- df.study3 |>
+  nrow()
+
+study3_choseself
+study3_totaln
+
+#bayes factor
+proportionBF(study3_choseself, study3_totaln, p = 0.5)
+
+#prior sensitivity
+proportionBF(study3_choseself, study3_totaln, p = 0.5, rscale = "wide")
+proportionBF(study3_choseself, study3_totaln, p = 0.5, rscale = "ultrawide")
+
+#binomial test
+binom.test(study3_choseself, study3_totaln, p = .5)
+
+#age effects
+study3_age_model <- stan_glm(choice ~ age_c, data = df.study3,
+                             family = binomial, refresh = 0, seed = 123)
+
+#age slope (posterior median and 95% HPD interval)
+emtrends(study3_age_model, ~ 1, var = "age_c")
+
+#age bins
+df.study3 |>
+  group_by(age_bin = floor(age)) |>
+  summarise(chose_self = sum(choice), n = n())
+```
+
+## Figures
+
+```{r}
+#choice figure
+p.study3_choice <- ggplot(data = df.study3,
+                          mapping = aes(x = "",
+                                        y = as.numeric(choice))) +
+  geom_jitter(height = 0,
+              width = 0.4,
+              alpha = 0.3,
+              size = 4.5,
+              color = "#4C6EBC") +
+  stat_summary(fun.data = "mean_cl_boot",
+               geom = "pointrange",
+               size = 4,
+               linewidth = 4,
+               color = "#4C6EBC") +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  scale_x_discrete(labels = function(x) rep(" ", length(x))) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "gray") +
+  coord_cartesian(clip = "off") +
+  labs(y = "Prop. Choosing Self",
+       x = " ")
+
+ggsave(here("figs", "study3_choice.png"), p.study3_choice,
+       width = 14, height = 9, dpi = 300, bg = "white")
+```
+
+# Study 4
+
+## Data
+
+```{r}
+#read in data
+df.study4_raw <- read.csv(here("data", "sc_study4_final.csv"))
+
+#clean data and recode values
+df.study4 <- df.study4_raw |>
+  filter(exclude == 0) |>
+  select(id, age, gender, condition, choice, color) |>
+  #condition: 1 = bird tracing (High Uncertainty), 0 = line tracing (Low
+  #Uncertainty)
+  mutate(age_bin = ifelse(age >= 5, "Five-year-old", "Four-year-old"),
+         age_c = age - mean(age),
+         condition = factor(ifelse(condition == 1, "High Uncertainty",
+                                   "Low Uncertainty"),
+                            levels = c("Low Uncertainty", "High Uncertainty")))
+```
+
+## Demographics
+
+```{r}
+#age
+df.study4 |>
+  summarise(n = n(),
+            age_mean = mean(age),
+            age_sd = sd(age),
+            age_min = min(age),
+            age_max = max(age))
+
+#gender
+df.study4 |>
+  count(gender)
+
+#number of participants choosing self by condition
+df.study4 |>
+  count(condition, choice)
+
+#excluded participants
+df.study4_raw |>
+  filter(exclude == 1) |>
+  count(exclude_reason)
+```
+
+## Analyses
+
+```{r}
+#bayesian models
+study4_model_full <-
+  stan_glm(
+    choice ~ condition,
+    data = df.study4,
+    family = binomial,
+    refresh = 0,
+    seed = 123,
+    diagnostic_file = file.path(tempdir(), "diag_file_full_study4.csv")
+  )
+
+study4_model_null <-
+  stan_glm(
+    choice ~ 1,
+    data = df.study4,
+    family = binomial,
+    refresh = 0,
+    seed = 123,
+    diagnostic_file = file.path(tempdir(), "diag_file_null_study4.csv")
+  )
+
+set.seed(123)
+bridge_full_study4 <- bridge_sampler(study4_model_full, silent = TRUE)
+set.seed(123)
+bridge_null_study4 <- bridge_sampler(study4_model_null, silent = TRUE)
+
+#bayes factor
+bayes_factor(bridge_full_study4, bridge_null_study4)$bf
+
+#condition effect (High - Low, posterior median and 95% HPD interval)
+emmeans(study4_model_full, ~ condition) |>
+  contrast("revpairwise")
+
+#fisher test
+fisher.test(table(df.study4$condition, df.study4$choice))
+
+#contingency table bayes factor; for comparison; not pre-registered
+contingencyTableBF(table(df.study4$condition, df.study4$choice),
+                   sampleType = "indepMulti",
+                   fixedMargin = "rows")
+```
+
+### Four-year-olds only
+
+```{r}
+#subset to four-year-olds
+df.study4_fours <- df.study4 |>
+  filter(age_bin == "Four-year-old")
+
+study4_fours_model_full <-
+  stan_glm(
+    choice ~ condition,
+    data = df.study4_fours,
+    family = binomial,
+    refresh = 0,
+    seed = 123,
+    diagnostic_file = file.path(tempdir(), "diag_file_full_study4_fours.csv")
+  )
+
+study4_fours_model_null <-
+  stan_glm(
+    choice ~ 1,
+    data = df.study4_fours,
+    family = binomial,
+    refresh = 0,
+    seed = 123,
+    diagnostic_file = file.path(tempdir(), "diag_file_null_study4_fours.csv")
+  )
+
+set.seed(123)
+bridge_full_study4_fours <- bridge_sampler(study4_fours_model_full,
+                                           silent = TRUE)
+set.seed(123)
+bridge_null_study4_fours <- bridge_sampler(study4_fours_model_null,
+                                           silent = TRUE)
+
+#bayes factor
+bayes_factor(bridge_full_study4_fours, bridge_null_study4_fours)$bf
+
+#condition effect (High - Low, posterior median and 95% HPD interval)
+emmeans(study4_fours_model_full, ~ condition) |>
+  contrast("revpairwise")
+
+#fisher test
+fisher.test(table(df.study4_fours$condition, df.study4_fours$choice))
+```
+
+### Five-year-olds only
+
+```{r}
+#subset to five-year-olds
+df.study4_fives <- df.study4 |>
+  filter(age_bin == "Five-year-old")
+
+#bayesian models
+study4_fives_model_full <-
+  stan_glm(
+    choice ~ condition,
+    data = df.study4_fives,
+    family = binomial,
+    refresh = 0,
+    seed = 123,
+    diagnostic_file = file.path(tempdir(), "diag_file_full_study4_fives.csv")
+  )
+
+study4_fives_model_null <-
+  stan_glm(
+    choice ~ 1,
+    data = df.study4_fives,
+    family = binomial,
+    refresh = 0,
+    seed = 123,
+    diagnostic_file = file.path(tempdir(), "diag_file_null_study4_fives.csv")
+  )
+
+set.seed(123)
+bridge_full_study4_fives <- bridge_sampler(study4_fives_model_full,
+                                           silent = TRUE)
+set.seed(123)
+bridge_null_study4_fives <- bridge_sampler(study4_fives_model_null,
+                                           silent = TRUE)
+
+#bayes factor
+bayes_factor(bridge_full_study4_fives, bridge_null_study4_fives)$bf
+
+#condition effect (High - Low, posterior median and 95% HPD interval)
+emmeans(study4_fives_model_full, ~ condition) |>
+  contrast("revpairwise")
+
+#fisher test
+fisher.test(table(df.study4_fives$condition, df.study4_fives$choice))
+```
+
+### Condition by age
+
+```{r}
+#condition by age interaction (exploratory)
+study4_age_model <- stan_glm(choice ~ condition * age_c, data = df.study4,
+                             family = binomial, refresh = 0, seed = 123)
+
+#condition effect at the mean age (High - Low)
+emmeans(study4_age_model, ~ condition) |>
+  contrast("revpairwise")
+
+#age slope averaged across conditions
+emtrends(study4_age_model, ~ 1, var = "age_c")
+
+#age slope per condition (descriptive)
+emtrends(study4_age_model, ~ condition, var = "age_c")
+
+#age by condition interaction (difference in age slopes, High - Low)
+emtrends(study4_age_model, ~ condition, var = "age_c") |>
+  contrast("revpairwise")
+
+#age bins
+df.study4 |>
+  group_by(age_bin, condition) |>
+  summarise(chose_self = sum(choice), n = n(), .groups = "drop")
+```
+
+## Figures
+
+```{r}
+#choice by condition figure
+p.study4_choice <- ggplot(data = df.study4,
+                          mapping = aes(x = condition,
+                                        y = as.numeric(choice),
+                                        color = condition)) +
+  geom_jitter(height = 0,
+              width = 0.4,
+              alpha = 0.3,
+              size = 4.5) +
+  stat_summary(fun.data = "mean_cl_boot",
+               geom = "pointrange",
+               size = 4,
+               linewidth = 4) +
+  scale_color_manual(values = c("High Uncertainty" = "#4C6EBC",
+                                "Low Uncertainty" = "#C1553A")) +
+  scale_x_discrete(limits = c("Low Uncertainty", "High Uncertainty")) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  labs(y = "Prop. Choosing Self",
+       x = "Condition")
+
+ggsave(here("figs", "study4_choice.png"), p.study4_choice,
+       width = 14, height = 9, dpi = 300, bg = "white")
+```
+
+```{r}
+#age effects figure
+p.study4_age <- ggplot(data = df.study4,
+                       mapping = aes(x = age,
+                                     y = choice,
+                                     color = condition,
+                                     fill = condition)) +
+  geom_point(size = 12,
+             alpha = .3) +
+  geom_smooth(method = "glm",
+              method.args = list(family = binomial(link = "logit")),
+              linewidth = 3,
+              alpha = .2) +
+  scale_color_manual(values = c("High Uncertainty" = "#4C6EBC",
+                                "Low Uncertainty" = "#C1553A")) +
+  scale_fill_manual(values = c("High Uncertainty" = "#4C6EBC",
+                               "Low Uncertainty" = "#C1553A")) +
+  scale_x_continuous(breaks = seq(4, 8, 1), labels = seq(4, 8, 1)) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  labs(y = "Prop. Choosing Self",
+       x = "Age")
+
+ggsave(here("figs", "study4_age_effects.png"), p.study4_age,
+       width = 14, height = 9, dpi = 300, bg = "white")
+```
+
+
+### Prior sensitivity
+
+```{r}
+
+study4_prior_scales <- c(0.25, .5, 1, 2.5, 5, 7.5, 10)
+
+study4_prior_sensitivity <- tibble(prior_scale = study4_prior_scales,
+                                   bf = NA_real_)
+
+#get bfs for each prior width
+for (i in seq_along(study4_prior_scales)) {
+  prior_scale <- study4_prior_scales[i]
+
+  study4_prior_model <- stan_glm(
+    choice ~ condition,
+    data = df.study4,
+    family = binomial,
+    prior = normal(0, prior_scale, autoscale = FALSE),
+    refresh = 0,
+    seed = 123,
+    diagnostic_file = file.path(
+      tempdir(),
+      paste0("diag_file_full_study4_prior", prior_scale, ".csv")
+    )
+  )
+
+  set.seed(123)
+  study4_prior_sensitivity$bf[i] <-
+    bayes_factor(bridge_sampler(study4_prior_model, silent = TRUE),
+                 bridge_null_study4)$bf
+}
+
+study4_prior_sensitivity
+```
+
+```{r}
+
+df.study4_prior_reported <- study4_prior_sensitivity |>
+  filter(prior_scale == 5)
+
+study4_prior_labels <- as.character(study4_prior_scales)
+study4_prior_labels[study4_prior_scales == 0.5] <- "\n0.5"
+
+p.study4_prior_sensitivity <- ggplot(data = study4_prior_sensitivity,
+                                     mapping = aes(x = prior_scale,
+                                                   y = bf)) +
+  geom_hline(yintercept = 1, color = "grey50", linewidth = 1) +
+  geom_line(linewidth = 2) +
+  geom_point(size = 8) +
+  geom_point(data = df.study4_prior_reported,
+             color = "#C1553A",
+             size = 10) +
+  scale_x_continuous(breaks = study4_prior_scales,
+                     labels = study4_prior_labels) +
+  labs(y = expression(BF[10]),
+       x = "Prior SD") +
+  theme(plot.margin = margin(5.5, 20, 5.5, 20))
+
+ggsave(here("figs", "study4_prior_sensitivity.png"), p.study4_prior_sensitivity,
+       width = 14, height = 8, dpi = 300, bg = "white")
+```
+
+# Session info
+
+```{r}
+
+sessionInfo()
+
+```

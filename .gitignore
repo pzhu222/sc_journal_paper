@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+
+# Stan sampler diagnostic files now go to tempdir() and never touch the repo
+# (see the diagnostic_file arguments in code/sc_paper_analyses.Rmd). Kept as a
+# guard in case an older revision of the notebook is ever run interactively.
+code/diag_file_*.csv
+diag_file_*.csv
+.claude/settings.json
+.claude/settings.local.json
+.claude/settings.json.bak
